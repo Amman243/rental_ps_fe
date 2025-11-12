@@ -77,12 +77,18 @@ export default function FoodList() {
             </div>
         <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm dark:border-gray-800">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                <colgroup>
+                    <col style={{ width: '64px' }} />
+                    <col />
+                    <col style={{ width: '200px' }} />
+                    <col style={{ width: '120px' }} />
+                </colgroup>
                 <thead className="bg-gray-50 dark:bg-gray-900">
                     <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Nama</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Harga</th>
-                        <th className="px-4 py-3"></th>
+                        <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide">ID</th>
+                        <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide">Nama</th>
+                        <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide">Harga</th>
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">Action</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
