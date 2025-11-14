@@ -7,6 +7,7 @@ import FoodList from './pages/FoodList'
 import Games from './pages/Games'
 import Room from './pages/Room'
 import Unit from './pages/Unit'
+import Users from './pages/Users'
 
 
 export default function App() {
@@ -19,6 +20,7 @@ return (
     <Route path="games" element={<Games />} />
     <Route path="rooms" element={<Room />} />
     <Route path="unit" element={<Unit />} />
+    <Route path="user" element={<Users />} />
     <Route path="settings" element={<Settings />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Route>
