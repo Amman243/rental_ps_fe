@@ -8,7 +8,8 @@ import {
   UtensilsCrossed,
   DoorOpen,
   SquareUserRound,
-  IdCard
+  IdCard,
+  User,
 } from "lucide-react";
 import Logo from "./Logo";
 
@@ -21,6 +22,7 @@ const nav = [
   { to: "/rooms", label: "Room", icon: DoorOpen },
   { to: "/customer", label: "Customer", icon: SquareUserRound },
   { to: "/membership", label: "Membership", icon: IdCard },
+  { to: "/user", label: "User", icon: User },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

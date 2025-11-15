@@ -5,7 +5,7 @@ return (
             <span className="text-xs font-bold">RR</span>
         </div>
         <div className="leading-tight">
-            <p className="text-sm font-semibold">Raffli Ramdhany</p>
+            <p className="text-sm font-semibold">Staff 1</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
         </div>
     </div>
