@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from "react"; // <-- Impor useRef
-import { Link } from "react-router-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-// --- Icon SVG (Tidak diubah) ---
 const IconPencil = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -109,9 +108,7 @@ const IconCalendarDate = () => (
   </svg>
 );
 
-// --- Data Palsu (Mock Data) (Tidak diubah) ---
 const mockReservations = [];
-
 const mockRooms = [
   { id_room: 1, nama_room: "Room 1 (PS4)" },
   { id_room: 2, nama_room: "Room 2 (PS4)" },
@@ -124,8 +121,6 @@ const mockRooms = [
   { id_room: 9, nama_room: "Room 9 (PS5)" },
   { id_room: 10, nama_room: "Room 10 (PS5-VIP)" },
 ];
-
-// --- Helper Functions BARU untuk Tanggal ---
 /**
  * Format JS Date object to "YYYY-MM-DD" string
  * @param {Date} date
@@ -151,17 +146,11 @@ const formatDisplayDate = (date) => {
   });
 };
 
-// --- Komponen Modal (Diperbarui dengan State) ---
 function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
-  // If isNew true -> tambah baru. Jika reservation ada dan isNew false -> edit.
   const isEditMode = reservation != null && !isNew;
-
-  // --- PERUBAHAN DIMULAI DI SINI ---
-  // 1. Buat state untuk menampung semua data form
   const [formData, setFormData] = useState({
     customer_name: reservation?.customer_name || "",
     nama_room: reservation?.nama_room || "",
-    // Gunakan helper toYYYYMMDD untuk tanggal hari ini
     date: reservation
       ? reservation.waktu_mulai
         ? reservation.waktu_mulai.split("T")[0]
@@ -175,18 +164,13 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
     duration: reservation?.durasi || 1,
     total_bayar: reservation?.total_harga || 0,
   });
-
-  // 2. Buat handler untuk memperbarui state saat input berubah
   const handleChange = (e) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      // Konversi ke angka jika tipenya number
       [name]: type === "number" ? parseInt(value) || 0 : value,
     }));
   };
-
-  // Jika props reservation berubah (misal prefill dari parent), sinkronkan formData
   React.useEffect(() => {
     if (!reservation) return;
     setFormData((prev) => ({
@@ -205,24 +189,18 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
     }));
   }, [reservation]);
 
-  // 3. Perbarui handleSubmit untuk mencatat data dari state
   const handleSubmit = (e) => {
-    e.preventDefault();
-    // Panggil callback onSave untuk memperbarui daftar reservasi di parent
+    e.preventDefault()
     if (typeof onSave === "function") {
       onSave(formData);
     } else {
       console.log("Form Data Disimpan (onSave not provided):", formData);
     }
-    onClose(); // Tutup modal
+    onClose();
   };
-  // --- PERUBAHAN SELESAI DI SINI ---
 
-  // Jika modal ditutup, kita kembalikan null di sini (setelah hooks dipanggil)
   if (!isOpen) return null;
-
   return (
-    // Backdrop
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       {/* Panel Modal */}
       <div className="bg-white dark:bg-gray-900 w-full max-w-lg p-6 rounded-lg shadow-xl">
@@ -237,12 +215,12 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
             </label>
             <input
               type="text"
-              name="customer_name" // <-- tetap pakai name yang sama
-              value={formData.customer_name} // <-- ambil dari state
-              onChange={handleChange} // <-- biar tetap bisa update formData
-              placeholder="Masukkan nama pelanggan" // <-- tambahan agar lebih jelas
+              name="customer_name"
+              value={formData.customer_name}
+              onChange={handleChange}
+              placeholder="Masukkan nama pelanggan"
               className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md p-2 
-                focus:ring-blue-500 focus:border-blue-500 
+                focus:ring-blue-500 focus:border-blue-500
                 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
             />
           </div>
@@ -252,9 +230,9 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
               Ruangan
             </label>
             <select
-              name="nama_room" // <-- Tambahkan name
-              value={formData.nama_room} // <-- Ganti defaultValue ke value
-              onChange={handleChange} // <-- Tambahkan onChange
+              name="nama_room"
+              value={formData.nama_room}
+              onChange={handleChange}
               className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
             >
               <option value="" disabled>
@@ -275,9 +253,9 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
               </label>
               <input
                 type="date"
-                name="date" // <-- Tambahkan name
-                value={formData.date} // <-- Ganti ke value
-                onChange={handleChange} // <-- Tambahkan onChange
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
             </div>
@@ -287,9 +265,9 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
               </label>
               <input
                 type="time"
-                name="time" // <-- Tambahkan name
-                value={formData.time} // <-- Ganti ke value
-                onChange={handleChange} // <-- Tambahkan onChange
+                name="time"
+                value={formData.time}
+                onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
               />
             </div>
@@ -301,9 +279,9 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
             </label>
             <input
               type="number"
-              name="duration" // <-- Tambahkan name
-              value={formData.duration} // <-- Ganti defaultValue ke value
-              onChange={handleChange} // <-- Tambahkan onChange
+              name="duration"
+              value={formData.duration}
+              onChange={handleChange}
               min="1"
               className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
             />
@@ -330,12 +308,12 @@ function ReservationModal({ isOpen, onClose, reservation, onSave, isNew }) {
   );
 }
 
-// --- Komponen: Detail Modal untuk melihat info reservasi ---
+
 function ReservationDetailModal({ isOpen, onClose, reservation, onDelete }) {
   if (!isOpen || !reservation) return null;
-
   const start = new Date(reservation.waktu_mulai);
   const end = new Date(reservation.waktu_selesai);
+  const navigate = useNavigate();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -365,7 +343,13 @@ function ReservationDetailModal({ isOpen, onClose, reservation, onDelete }) {
             {reservation.payment_status || "-"}
           </div>
         </div>
-        <div className="flex justify-end gap-3 mt-4">
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => navigate("/orderfoods")}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md mr-auto"
+          >
+            Order Food{/* <ShoppingCart className="h-5 w-5" /> */}
+          </button>
           <button
             onClick={() => {
               if (onDelete && reservation) {
@@ -389,20 +373,15 @@ function ReservationDetailModal({ isOpen, onClose, reservation, onDelete }) {
   );
 }
 
-// --- Komponen BARU: ReservationTimeline ---
 
 const operationalHours = [
   2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
   23, 0,
 ];
 
-// Fungsi untuk cek status slot
 function getSlotStatus(room, hour, selectedDateString, reservations) {
-  // 1. Cek 'Dibooking' berdasarkan daftar reservations yang diberikan
   for (const res of reservations) {
     const resDate = res.waktu_mulai.split("T")[0];
-
-    // Cocokkan room (mendukung beberapa format nama pada mock)
     const isSameRoom =
       res.nama_room === room.nama_room ||
       (res.nama_room === "Room 1 (PS4)" && room.id_room === 1) ||
@@ -725,7 +704,7 @@ function ReservationHistoryTable({ reservations = [], onDelete }) {
   );
 }
 
-export default function Analytics() {
+export default function Reservation() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -1145,22 +1124,6 @@ export default function Analytics() {
           })()}
         </>
       )}
-
-      {/* 3. Order Food CTA */}
-      <div className="mt-6">
-        <div className="rounded-lg p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-            Butuh makanan atau camilan selama bermain? Anda bisa memesan makanan
-            dan kami antar langsung ke ruangan.
-          </p>
-          <Link
-            to="/foods"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-          >
-            Order Food
-          </Link>
-        </div>
-      </div>
 
       {/* 4. Popup (Modal) (Tidak diubah) */}
       <ReservationModal

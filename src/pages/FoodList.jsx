@@ -12,7 +12,6 @@ export default function FoodList() {
         .then((data) => { if (alive) setFoods(data) })
         .catch(() => {
         if (!alive) return
-        // fallback sample
         setFoods([
         { id_food: 1, nama_makanan: 'Mie Goreng Instan', harga: 12000 },
         { id_food: 2, nama_makanan: 'Mie Rebus Instan', harga: 12000 },
@@ -24,8 +23,6 @@ export default function FoodList() {
         () => foods.filter((f) => f.nama_makanan.toLowerCase().includes(query.toLowerCase())),
         [foods, query]
     )
-
-
     async function createFood(e) {
         e.preventDefault()
         const payload = { ...form, harga: Number(form.harga) }
@@ -36,7 +33,7 @@ export default function FoodList() {
                 body: JSON.stringify(payload),
             })
             if (!r.ok) throw new Error('create failed')
-            const created = await r.json() // expect { id_food, nama_makanan, harga }
+            const created = await r.json()
             setFoods((prev) => [created, ...prev])
             setOpen(false)
             setForm({ nama_makanan: '', harga: '' })

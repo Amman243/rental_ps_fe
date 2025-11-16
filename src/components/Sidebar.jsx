@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
-  ChartSpline,
+  CalendarRange,
   Settings,
   Gamepad,
   Monitor,
@@ -15,7 +15,7 @@ import Logo from "./Logo";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/analytics", label: "Reservation", icon: ChartSpline },
+  { to: "/reservation", label: "Reservation", icon: CalendarRange },
   { to: "/games", label: "List Game", icon: Gamepad },
   { to: "/unit", label: "Unit Playstation", icon: Monitor },
   { to: "/foods", label: "Food List", icon: UtensilsCrossed },
