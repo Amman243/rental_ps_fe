@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Plus, Minus, ShoppingCart, Trash2, Search } from 'lucide-react'
 import { useSearchParams } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const fmtIDR = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n || 0))
 export default function QuickOrder() {
     const [foods, setFoods] = useState([])
@@ -16,14 +18,14 @@ export default function QuickOrder() {
     if (reservationStart && reservationEnd) {
         const start = new Date(reservationStart);
         const end   = new Date(reservationEnd);
-        const startText = start.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-        const endText = end.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+        const startText = start.toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+        const endText = end.toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
         reservationTimeText = `${startText} - ${endText}`;
-    }""
+    }
     const [cart, setCart] = useState({})
     useEffect(() => {
         let alive = true
-        fetch('/foods')
+        fetch(`${API_BASE}/api/foods`)
         .then((r) => { if (!r.ok) throw new Error('bad'); return r.json() })
         .then((data) => { if (alive) setFoods(data) })
         .catch(() => {
@@ -31,12 +33,7 @@ export default function QuickOrder() {
             setFoods([
                 { id_food: 1, nama_makanan: 'Mie Goreng Instan', harga: 12000 },
                 { id_food: 2, nama_makanan: 'Mie Rebus Instan', harga: 12000 },
-                { id_food: 3, nama_makanan: 'Nasi Goreng Spesial', harga: 18000 },
-                { id_food: 4, nama_makanan: 'Nasi Ayam Geprek', harga: 20000 },
-                { id_food: 5, nama_makanan: 'Kentang Goreng', harga: 10000 },
-                { id_food: 10, nama_makanan: 'Teh Panas', harga: 5000 },
-                { id_food: 12, nama_makanan: 'Kopi Hitam Panas', harga: 8000 },
-                { id_food: 14, nama_makanan: 'Jus Alpukat', harga: 12000 },
+                { id_food: 3, nama_makanan: 'Nasi Goreng Spesial', harga: 18000 }
             ])
         })
         return () => { alive = false }
@@ -59,7 +56,7 @@ export default function QuickOrder() {
         const payload = {reservation_id: Number(reservationId), items: items.map((i) => ({ food_id: i.food.id_food, jumlah: i.qty })),
         }
         try {
-            const r = await fetch('/api/orders', {
+            const r = await fetch(`${API_BASE}/api/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -141,7 +138,7 @@ export default function QuickOrder() {
                                   <div>ID Reservasi {reservationId}</div>
                                   {reservationName && <div>Pelanggan: {reservationName}</div>}
                                   {reservationRoom && <div>Ruangan: {reservationRoom}</div>}
-                                  {reservationTimeText && <div>Waktu: {reservationTimeText}</div>}
+                                  {reservationTimeText && <div>Waktu: <br></br>{reservationTimeText}</div>}
                                 </>
                               ) : (
                                 <>Tidak ada reservasi terpilih (buka dari halaman reservasi)</>
