@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, Minus, ShoppingCart, Trash2, Search } from 'lucide-react'
+import { useSearchParams } from "react-router-dom";
+
 const fmtIDR = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n || 0))
 export default function QuickOrder() {
     const [foods, setFoods] = useState([])
     const [query, setQuery] = useState('')
-    const [reservationId, setReservationId] = useState('')
+    const [searchParams] = useSearchParams()
+    const reservationId = searchParams.get("reservation") || ""
+    const membershipId = searchParams.get("membership") || ""
     const [cart, setCart] = useState({}) // { [food_id]: qty }
     useEffect(() => {
         let alive = true
@@ -119,15 +123,15 @@ export default function QuickOrder() {
                             </ul>
                         )}
                         <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-800">
-                            <label className="block text-sm">
-                                <span className="text-gray-700 dark:text-gray-300">Reservation ID</span>
-                                <input
-                                    type="number"
-                                    value={reservationId}
-                                    onChange={(e) => setReservationId(e.target.value)}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                                    placeholder="mis. 42"/>
-                            </label>
+                            <span className="text-gray-700 dark:text-gray-300">Reservasi</span>
+                            <p className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                                {reservationId
+                                    ? `ID Reservasi ${reservationId}`
+                                    : `Tidak ada reservasi terpilih (buka dari halaman reservasi)`}
+                                {membershipId
+                                    ? `Status member`
+                                    : ``}
+                            </p>
                             <div className="mt-4 flex items-center justify-between">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
                                 <p className="text-xl font-bold">{fmtIDR(total)}</p>

@@ -345,7 +345,7 @@ function ReservationDetailModal({ isOpen, onClose, reservation, onDelete }) {
         </div>
         <div className="flex gap-3 mt-4">
           <button
-            onClick={() => navigate("/orderfoods")}
+            onClick={() => navigate(`/orderfoods?reservation=${reservation.id_reservation}`)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md mr-auto"
           >
             Order Food{/* <ShoppingCart className="h-5 w-5" /> */}
