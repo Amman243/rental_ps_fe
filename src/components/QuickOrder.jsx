@@ -14,6 +14,9 @@ export default function QuickOrder() {
     const reservationRoom = searchParams.get("rooms") || ""
     const reservationStart = searchParams.get("start") || ""
     const reservationEnd = searchParams.get("end") || ""
+    const [reservationInfo, setReservationInfo] = useState(null);
+    const [loadingReservation, setLoadingReservation] = useState(false);
+    const [reservationError, setReservationError] = useState('');
     let reservationTimeText = "";
     if (reservationStart && reservationEnd) {
         const start = new Date(reservationStart);
@@ -38,6 +41,31 @@ export default function QuickOrder() {
         })
         return () => { alive = false }
     }, [])
+    useEffect(() => {
+        if (!reservationId) {
+            setReservationInfo(null);
+            return;
+        }
+        setLoadingReservation(true);
+        setReservationError('');
+        fetch(`${API_BASE}/reservations/${reservationId}`)
+            .then((r) => {
+                if (!r.ok) throw new Error('failed');
+                return r.json();
+            })
+            .then((data) => {
+                setReservationInfo(data);
+            })
+                .catch((err) => {
+                console.error(err);
+                setReservationInfo(null);
+                setReservationError('Gagal mengambil data reservasi');
+            })
+            .finally(() => {
+                setLoadingReservation(false);
+            });
+}, [reservationId]);
+
     const filtered = useMemo(() =>foods.filter((f) => f.nama_makanan.toLowerCase().includes(query.toLowerCase())),[foods, query])
     const items = Object.entries(cart).map(([id, qty]) => ({qty, food: foods.find((f) => String(f.id_food) === String(id)), })).filter((i) => i.food)
     const total = items.reduce((s, i) => s + Number(i.food.harga) * i.qty, 0)
