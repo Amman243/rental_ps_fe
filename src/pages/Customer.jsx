@@ -1,21 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
-import { apiGet } from "../lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { apiDelete, apiGet, apiPost, apiPut } from "../lib/api";
 
-const MEMBERSHIP_LOOKUP = {
-  1: { id_membership: 1, nama_tier: "Bronze", diskon_persen: 5 },
-  2: { id_membership: 2, nama_tier: "Silver", diskon_persen: 10 },
-  3: { id_membership: 3, nama_tier: "Gold", diskon_persen: 15 },
-};
-
-const initialCustomers = [
-  // { id_customer: 1, nama: "Budi Setiawan", no_hp: "081234567890", membership_id: 1 },
-  // { id_customer: 2, nama: "Sinta Wijaya", no_hp: "082198873210", membership_id: 2 },
-  // { id_customer: 3, nama: "Rizky Saputra", no_hp: "085278331120", membership_id: 3 },
-];
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function Customer() {
-  const [customers, setCustomers] = useState(initialCustomers);
+  const [customers, setCustomers] = useState([]);
+  const [memberships, setMemberships] = useState([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [loadingMemberships, setLoadingMemberships] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [totalItems, setTotalItems] = useState(0);
   const [query, setQuery] = useState("");
   const [modalState, setModalState] = useState({ open: false, mode: "create" });
   const [formData, setFormData] = useState({
@@ -25,25 +22,78 @@ export default function Customer() {
     membership_id: "",
   });
   const [confirmDelete, setConfirmDelete] = useState({ open: false, target: null });
+  const membershipFetchedRef = useRef(false);
+  const lastFetchedPageRef = useRef(null);
+
+  const membershipLookup = useMemo(() => {
+    return memberships.reduce((acc, tier) => {
+      acc[tier.id_membership] = tier;
+      return acc;
+    }, {});
+  }, [memberships]);
 
   const filtered = useMemo(() => {
     return customers.filter((customer) => {
       const matchName = customer.nama?.toLowerCase().includes(query.toLowerCase());
-      const tierName =
-        MEMBERSHIP_LOOKUP[customer.membership_id]?.nama_tier.toLowerCase() ?? "";
+      const tierName = membershipLookup[customer.membership_id]?.nama_tier.toLowerCase() ?? "";
       const matchTier = tierName.includes(query.toLowerCase());
       return matchName || matchTier;
     });
-  }, [customers, query]);
+  }, [customers, membershipLookup, query]);
 
-  const fetchCustomer = async () => {
-    const data = await apiGet('/customers');
-    console.log("Fetched customers:", data);
-  }
+  const fetchCustomer = async (pageParam = 1, { force = false } = {}) => {
+    if (!force && lastFetchedPageRef.current === pageParam) {
+      return;
+    }
+    lastFetchedPageRef.current = pageParam;
+    setLoadingCustomers(true);
+    try {
+      const response = await apiGet(`/customers?page=${pageParam}`);
+      const dataCust = response.data ?? [];
+      const pagination = response.pagination ?? {};
+      setCustomers(dataCust);
+      setPageCount(Math.max(1, pagination.totalPages ?? 1));
+      const resolvedPageSize = pagination.pageSize ?? DEFAULT_PAGE_SIZE;
+      setPageSize(resolvedPageSize);
+      setTotalItems(pagination.totalItems ?? dataCust.length);
+    } catch (error) {
+      lastFetchedPageRef.current = null;
+      console.error("Failed to fetch customers", error);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
+
+  const fetchMemberships = async () => {
+    if (loadingMemberships) return;
+    setLoadingMemberships(true);
+    try {
+      const data = await apiGet("/membership");
+      setMemberships(data);
+    } catch (error) {
+      console.error("Failed to fetch membership list", error);
+    } finally {
+      setLoadingMemberships(false);
+    }
+  };
 
   useEffect(() => {
-    fetchCustomer();
+    if (membershipFetchedRef.current) return;
+    membershipFetchedRef.current = true;
+    fetchMemberships();
   }, []);
+
+  useEffect(() => {
+    fetchCustomer(page);
+  }, [page]);
+
+  const goToPreviousPage = () => {
+    setPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const goToNextPage = () => {
+    setPage((prev) => Math.min(pageCount, prev + 1));
+  };
 
   const closeModal = () => {
     setModalState({ open: false, mode: "create" });
@@ -57,54 +107,70 @@ export default function Customer() {
 
   const openEditModal = (customer) => {
     setModalState({ open: true, mode: "edit" });
-    setFormData({ ...customer });
+    setFormData({
+      id_customer: customer.id_customer,
+      nama: customer.nama ?? "",
+      no_hp: customer.no_hp ?? "",
+      membership_id: customer.membership_id ?? "",
+    });
   };
 
-  const handleCreateCustomer = (payload) => {
-    console.log("TODO: POST /customers payload", payload);
+  const buildPayload = (payload) => ({
+    nama: payload.nama,
+    membership_id: Number(payload.membership_id),
+    no_hp: payload.no_hp?.trim() ? payload.no_hp.trim() : null,
+  });
+
+  const handleCreateCustomer = async (payload) => {
+    await apiPost("/customers", buildPayload(payload));
+    await fetchCustomer(1, { force: true });
+    setPage(1);
   };
 
-  const handleUpdateCustomer = (id, payload) => {
-    console.log("TODO: PUT /customers/" + id, payload);
+  const handleUpdateCustomer = async (id, payload) => {
+    await apiPut(`/customers/${id}`, buildPayload(payload));
+    await fetchCustomer(page, { force: true });
   };
 
-  const handleDeleteCustomer = (id) => {
-    console.log("TODO: DELETE /customers/" + id);
-  };
-
-  const handleSubmit = () => {
-    if (!formData.nama || !formData.membership_id) return;
-
-    if (modalState.mode === "create") {
-      const newCustomer = {
-        ...formData,
-        id_customer: Date.now(),
-        membership_id: Number(formData.membership_id),
-      };
-      handleCreateCustomer(newCustomer);
-      setCustomers((prev) => [...prev, newCustomer]);
-    } else if (modalState.mode === "edit") {
-      handleUpdateCustomer(formData.id_customer, formData);
-      setCustomers((prev) =>
-        prev.map((item) => (item.id_customer === formData.id_customer ? formData : item)),
-      );
+  const handleDeleteCustomer = async (id) => {
+    await apiDelete(`/customers/${id}`);
+    const isLastItemOnPage = customers.length === 1 && page > 1;
+    if (isLastItemOnPage) {
+      const prevPage = Math.max(1, page - 1);
+      await fetchCustomer(prevPage, { force: true });
+      setPage(prevPage);
+      return;
     }
-    closeModal();
+    await fetchCustomer(page, { force: true });
   };
 
-  const removeCustomer = (id) => {
-    handleDeleteCustomer(id);
-    setCustomers((prev) => prev.filter((item) => item.id_customer !== id));
+  const handleSubmit = async () => {
+    if (!formData.nama || !formData.membership_id) return;
+    try {
+      if (modalState.mode === "create") {
+        await handleCreateCustomer(formData);
+      } else if (modalState.mode === "edit") {
+        await handleUpdateCustomer(formData.id_customer, formData);
+      }
+      closeModal();
+    } catch (error) {
+      console.error("Failed to submit customer form", error);
+    }
   };
 
   const askDeleteCustomer = (customer) => {
     setConfirmDelete({ open: true, target: customer });
   };
 
-  const confirmRemoveCustomer = () => {
+  const confirmRemoveCustomer = async () => {
     if (!confirmDelete.target) return;
-    removeCustomer(confirmDelete.target.id_customer);
-    setConfirmDelete({ open: false, target: null });
+    try {
+      await handleDeleteCustomer(confirmDelete.target.id_customer);
+    } catch (error) {
+      console.error("Failed to delete customer", error);
+    } finally {
+      setConfirmDelete({ open: false, target: null });
+    }
   };
 
   const closeConfirmModal = () => setConfirmDelete({ open: false, target: null });
@@ -154,42 +220,50 @@ export default function Customer() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
-            {filtered.map((customer, index) => {
-              const membership = MEMBERSHIP_LOOKUP[customer.membership_id];
-              return (
-                <tr key={customer.id_customer}>
-                  <td className="px-4 py-3 text-sm text-gray-500">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-medium">{customer.nama}</td>
-                  <td className="px-4 py-3 text-sm">{customer.no_hp || "-"}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <p className="font-medium">{membership?.nama_tier ?? "-"}</p>
-                    {membership?.diskon_persen != null && (
-                      <span className="text-xs text-gray-500">
-                        Diskon {membership.diskon_persen}%
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => openEditModal(customer)}
-                        className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => askDeleteCustomer(customer)}
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-
-            {filtered.length === 0 && (
+            {loadingCustomers ? (
+              <tr>
+                <td colSpan="5" className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Sedang memuat data customer...
+                </td>
+              </tr>
+            ) : filtered.length > 0 ? (
+              filtered.map((customer, index) => {
+                const membership = membershipLookup[customer.membership_id];
+                return (
+                  <tr key={customer.id_customer}>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {(page - 1) * pageSize + index + 1}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">{customer.nama}</td>
+                    <td className="px-4 py-3 text-sm">{customer.no_hp || "-"}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <p className="font-medium">{membership?.nama_tier ?? "-"}</p>
+                      {membership?.diskon_persen != null && (
+                        <span className="text-xs text-gray-500">
+                          Diskon {membership.diskon_persen}%
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => openEditModal(customer)}
+                          className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => askDeleteCustomer(customer)}
+                          className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
               <tr>
                 <td colSpan="5" className="py-4 text-center text-gray-500 dark:text-gray-400">
                   Tidak ada customer
@@ -198,6 +272,39 @@ export default function Customer() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 text-sm dark:border-gray-800 dark:bg-gray-900/60 md:flex-row md:items-center md:justify-between">
+        <p className="text-gray-500 dark:text-gray-400">
+          Halaman{" "}
+          <span className="font-semibold text-gray-700 dark:text-gray-200">{page}</span> dari{" "}
+          <span className="font-semibold text-gray-700 dark:text-gray-200">{pageCount}</span> • Total{" "}
+          <span className="font-semibold text-gray-700 dark:text-gray-200">{totalItems}</span> customer
+        </p>
+
+        <div className="inline-flex items-center gap-1 self-end md:self-auto">
+          <button
+            type="button"
+            onClick={goToPreviousPage}
+            disabled={page === 1}
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-1 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          <span className="text-xs text-gray-600 dark:text-gray-300">
+            Halaman {page} / {pageCount}
+          </span>
+
+          <button
+            type="button"
+            onClick={goToNextPage}
+            disabled={page === pageCount}
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-3 py-1 text-sm font-semibold text-white hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {modalState.open && (
@@ -252,14 +359,20 @@ export default function Customer() {
                       membership_id: e.target.value === "" ? "" : Number(e.target.value),
                     }))
                   }
+                  disabled={loadingMemberships && memberships.length === 0}
                   className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                 >
-                  <option value="">-- Pilih Tier --</option>
-                  {Object.values(MEMBERSHIP_LOOKUP).map((tier) => (
-                    <option key={tier.id_membership} value={tier.id_membership}>
-                      {tier.nama_tier}
-                    </option>
-                  ))}
+                  <option value="">
+                    {loadingMemberships && memberships.length === 0
+                      ? "Memuat membership..."
+                      : "-- Pilih Tier --"}
+                  </option>
+                  {!loadingMemberships &&
+                    memberships.map((tier) => (
+                      <option key={tier.id_membership} value={tier.id_membership}>
+                        {tier.nama_tier}
+                      </option>
+                    ))}
                 </select>
               </label>
               <div className="flex justify-end gap-2">

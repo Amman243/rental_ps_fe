@@ -1,14 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
-
-const initialMemberships = [
-  { id_membership: 1, nama_tier: "Bronze", diskon_persen: 5, poin_bonus: 50 },
-  { id_membership: 2, nama_tier: "Silver", diskon_persen: 10, poin_bonus: 75 },
-  { id_membership: 3, nama_tier: "Gold", diskon_persen: 15, poin_bonus: 120 },
-];
+import { apiDelete, apiGet, apiPost, apiPut } from "../lib/api";
 
 export default function Membership() {
-  const [memberships, setMemberships] = useState(initialMemberships);
+  const [memberships, setMemberships] = useState([]);
+  const [loadingMemberships, setLoadingMemberships] = useState(false);
   const [query, setQuery] = useState("");
   const [modalState, setModalState] = useState({ open: false, mode: "create" });
   const [formData, setFormData] = useState({
@@ -18,10 +14,30 @@ export default function Membership() {
     poin_bonus: "",
   });
   const [confirmDelete, setConfirmDelete] = useState({ open: false, target: null });
+  const hasFetchedRef = useRef(false);
 
   const filtered = useMemo(() => {
     return memberships.filter((item) => item.nama_tier.toLowerCase().includes(query.toLowerCase()));
   }, [memberships, query]);
+
+  const fetchMemberships = async () => {
+    if (loadingMemberships) return;
+    setLoadingMemberships(true);
+    try {
+      const data = await apiGet("/membership");
+      setMemberships(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch membership list", error);
+    } finally {
+      setLoadingMemberships(false);
+    }
+  };
+
+  useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    fetchMemberships();
+  }, []);
 
   const closeModal = () => {
     setModalState({ open: false, mode: "create" });
@@ -42,57 +58,60 @@ export default function Membership() {
     });
   };
 
-  const handleCreateMembership = (payload) => {
-    console.log("TODO: POST /membership payload", payload);
+  const toNullableNumber = (value) => {
+    if (value === "" || value === null || value === undefined) return null;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
   };
 
-  const handleUpdateMembership = (id, payload) => {
-    console.log("TODO: PUT /membership/" + id, payload);
+  const buildPayload = (payload) => ({
+    nama_tier: payload.nama_tier,
+    diskon_persen: toNullableNumber(payload.diskon_persen),
+    poin_bonus: toNullableNumber(payload.poin_bonus),
+  });
+
+  const handleCreateMembership = async (payload) => {
+    await apiPost("/membership", buildPayload(payload));
+    await fetchMemberships();
   };
 
-  const handleDeleteMembership = (id) => {
-    console.log("TODO: DELETE /membership/" + id);
+  const handleUpdateMembership = async (id, payload) => {
+    await apiPut(`/membership/${id}`, buildPayload(payload));
+    await fetchMemberships();
   };
 
-  const handleSubmit = () => {
+  const handleDeleteMembership = async (id) => {
+    await apiDelete(`/membership/${id}`);
+    await fetchMemberships();
+  };
+
+  const handleSubmit = async () => {
     if (!formData.nama_tier) return;
-
-    if (modalState.mode === "create") {
-      const newTier = {
-        id_membership: Date.now(),
-        nama_tier: formData.nama_tier,
-        diskon_persen: formData.diskon_persen === "" ? null : Number(formData.diskon_persen),
-        poin_bonus: formData.poin_bonus === "" ? null : Number(formData.poin_bonus),
-      };
-      handleCreateMembership(newTier);
-      setMemberships((prev) => [...prev, newTier]);
-    } else if (modalState.mode === "edit") {
-      const updatedTier = {
-        ...formData,
-        diskon_persen: formData.diskon_persen === "" ? null : Number(formData.diskon_persen),
-        poin_bonus: formData.poin_bonus === "" ? null : Number(formData.poin_bonus),
-      };
-      handleUpdateMembership(updatedTier.id_membership, updatedTier);
-      setMemberships((prev) =>
-        prev.map((item) => (item.id_membership === updatedTier.id_membership ? updatedTier : item)),
-      );
+    try {
+      if (modalState.mode === "create") {
+        await handleCreateMembership(formData);
+      } else if (modalState.mode === "edit") {
+        await handleUpdateMembership(formData.id_membership, formData);
+      }
+      closeModal();
+    } catch (error) {
+      console.error("Failed to submit membership form", error);
     }
-    closeModal();
-  };
-
-  const removeTier = (id) => {
-    handleDeleteMembership(id);
-    setMemberships((prev) => prev.filter((item) => item.id_membership !== id));
   };
 
   const askDeleteTier = (membership) => {
     setConfirmDelete({ open: true, target: membership });
   };
 
-  const confirmRemoveTier = () => {
+  const confirmRemoveTier = async () => {
     if (!confirmDelete.target) return;
-    removeTier(confirmDelete.target.id_membership);
-    setConfirmDelete({ open: false, target: null });
+    try {
+      await handleDeleteMembership(confirmDelete.target.id_membership);
+    } catch (error) {
+      console.error("Failed to delete membership", error);
+    } finally {
+      setConfirmDelete({ open: false, target: null });
+    }
   };
 
   const closeConfirmModal = () => setConfirmDelete({ open: false, target: null });
@@ -142,32 +161,38 @@ export default function Membership() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
-            {filtered.map((item, index) => (
-              <tr key={item.id_membership}>
-                <td className="px-4 py-3 text-sm text-gray-500">{index + 1}</td>
-                <td className="px-4 py-3 text-sm font-medium">{item.nama_tier}</td>
-                <td className="px-4 py-3 text-sm">{item.diskon_persen ?? "-"}</td>
-                <td className="px-4 py-3 text-sm">{item.poin_bonus ?? "-"}</td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => openEditModal(item)}
-                      className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => askDeleteTier(item)}
-                      className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+            {loadingMemberships ? (
+              <tr>
+                <td colSpan="5" className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Sedang memuat tier membership...
                 </td>
               </tr>
-            ))}
-
-            {filtered.length === 0 && (
+            ) : filtered.length > 0 ? (
+              filtered.map((item, index) => (
+                <tr key={item.id_membership}>
+                  <td className="px-4 py-3 text-sm text-gray-500">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{item.nama_tier}</td>
+                  <td className="px-4 py-3 text-sm">{item.diskon_persen ?? "-"}</td>
+                  <td className="px-4 py-3 text-sm">{item.poin_bonus ?? "-"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => openEditModal(item)}
+                        className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => askDeleteTier(item)}
+                        className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
                 <td colSpan="5" className="py-4 text-center text-gray-500 dark:text-gray-400">
                   Tidak ada tier
