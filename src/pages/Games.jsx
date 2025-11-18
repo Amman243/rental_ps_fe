@@ -59,13 +59,6 @@ export default function Games() {
   };
 
   // ===============================
-  // RESET PAGE KALAU SEARCH BERUBAH
-  // ===============================
-  useEffect(() => {
-    setPage(1);
-  }, [query]);
-
-  // ===============================
   // FILTER SEARCH
   // ===============================
   const filtered = useMemo(() => {
