@@ -19,11 +19,23 @@ export default function QuickOrder() {
     const [reservationError, setReservationError] = useState('');
     let reservationTimeText = "";
     if (reservationStart && reservationEnd) {
-        const start = new Date(reservationStart);
-        const end   = new Date(reservationEnd);
-        const startText = start.toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
-        const endText = end.toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
-        reservationTimeText = `${startText} - ${endText}`;
+      const start = new Date(reservationStart);
+      const end = new Date(reservationEnd);
+      const dateText = start.toLocaleDateString("id-ID", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      const startText = start.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const endText = end.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      reservationTimeText = `${dateText} • ${startText} - ${endText}`;
     }
     const [cart, setCart] = useState({})
     useEffect(() => {
