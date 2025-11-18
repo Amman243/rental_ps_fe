@@ -1,16 +1,5 @@
 import { NavLink } from "react-router-dom";
-import {
-  LayoutDashboard,
-  CalendarRange,
-  Settings,
-  Gamepad,
-  Monitor,
-  UtensilsCrossed,
-  DoorOpen,
-  SquareUserRound,
-  IdCard,
-  User,
-} from "lucide-react";
+import {LayoutDashboard,CalendarRange,Settings,Gamepad,Monitor,UtensilsCrossed,DoorOpen,SquareUserRound,IdCard,User,} from "lucide-react";
 import Logo from "./Logo";
 
 const nav = [
@@ -26,23 +15,24 @@ const nav = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-function Item({ to, label, icon: Icon, end }) {
+function Item(props) {
+  const { to, label, icon: Icon, end } = props
   return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        `group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors
+    <NavLink to={to} end={end}>
+      {({ isActive }) => (
+        <div
+          className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors
 ${
-  isActive
-    ? "bg-indigo-600 text-white dark:bg-indigo-500"
-    : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-}
-`
-      }
-    >
-      <Icon size={18} className="shrink-0" />
-      <span>{label}</span>
+            isActive
+              ? "bg-indigo-600 text-white dark:bg-indigo-500"
+              : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          }
+          `}
+        >
+          <Icon size={18} className={`shrink-0 ${isActive ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+          <span>{label}</span>
+        </div>
+      )}
     </NavLink>
   );
 }
